@@ -314,10 +314,12 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         external_ids = media_metadata.get("external_ids", {})
         imdb_id = external_ids.get("imdb_id")
         tmdb_id_val = media_id if source == Sources.TMDB.value else None
+        tvdb_id = external_ids.get("tvdb_id")
         jellyfin_item_id = jellyfin.search_item_by_provider_ids(
             user,
             imdb_id=imdb_id,
             tmdb_id=tmdb_id_val,
+            tvdb_id=tvdb_id,
         )
         if jellyfin_item_id:
             jellyfin_available = True
@@ -394,10 +396,12 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         external_ids = tv_with_seasons_metadata.get("external_ids", {})
         imdb_id = external_ids.get("imdb_id")
         tmdb_id_val = media_id if source == Sources.TMDB.value else None
+        tvdb_id = external_ids.get("tvdb_id")
         jellyfin_item_id = jellyfin.search_item_by_provider_ids(
             user,
             imdb_id=imdb_id,
             tmdb_id=tmdb_id_val,
+            tvdb_id=tvdb_id,
         )
         if jellyfin_item_id:
             jellyfin_available = True

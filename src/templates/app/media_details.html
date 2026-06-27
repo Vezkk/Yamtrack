@@ -435,17 +435,18 @@
 
       {# Media Details #}
       <h2 class="text-xl font-bold mb-4">Details</h2>
-      {% if watch_provider_region == "UNSET" or watch_providers is not None or jellyfin_available %}
+      {% if watch_providers is not None or jellyfin_available %}
         <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
           <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
-          {% if watch_provider_region == "UNSET" %}
+          {% if watch_provider_region == "UNSET" and not watch_providers %}
             {% url 'preferences' as preferences_url %}
             <p class="text-gray-200">
               Watch provider region is not configured. Set a region or disable this feature in the
               <a href="{{ preferences_url }}"
                  class="hover:text-indigo-500 hover:underline">preferences</a>.
             </p>
-          {% elif watch_providers or jellyfin_available %}
+          {% endif %}
+          {% if watch_providers or jellyfin_available %}
             <div class="grid grid-cols-[repeat(auto-fill,48px)] gap-2 items-center justify-between">
               {% for provider in watch_providers %}
                 <img class="rounded-md"
@@ -463,6 +464,8 @@
                 </a>
               {% endif %}
             </div>
+          {% elif watch_provider_region == "UNSET" %}
+            {# region message already shown above #}
           {% else %}
             <p class="text-gray-200">No watch providers</p>
           {% endif %}

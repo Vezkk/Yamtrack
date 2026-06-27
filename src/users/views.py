@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import HttpResponse
+from django.utils.html import escape
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -428,7 +429,8 @@ def fetch_jellyfin_users(request):
 
     current_id = request.user.jellyfin_user_id
     options = "".join(
-        f'<option value="{u["id"]}" {"selected" if u["id"] == current_id else ""}>{u["name"]}</option>'
+        f'<option value="{escape(u["id"])}" {"selected" if u["id"] == current_id else ""}>'
+        f"{escape(u['name'])}</option>"
         for u in users
     )
     return HttpResponse(
