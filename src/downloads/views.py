@@ -64,6 +64,14 @@ def _pick_best_result(torrents, user):
         good = [t for t in filtered if t.get("qualityScore", 0) >= 60]
         if good:
             filtered = good
+
+        # Hard filter: preferred quality (if set)
+        pref_quality = (user.download_preferred_quality or "").lower()
+        if pref_quality:
+            quality_match = [t for t in filtered if pref_quality in str(t.get("quality", "")).lower()]
+            if quality_match:
+                filtered = quality_match
+
         filtered.sort(key=_efficiency_score, reverse=True)
         return filtered[0] if filtered else None
 
