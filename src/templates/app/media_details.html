@@ -549,8 +549,7 @@
               </div>
               <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors cursor-pointer text-sm"
                       hx-get="{% url 'download_search' %}"
-                      hx-vals='{"media_id": "{{ media.media_id }}", "media_type": "{{ media_type }}", "source": "{{ media.source }}", "title": "{{ media.title|escapejs }}", "mode": "advanced"}'
-                      hx-on::before-request="var p=event.detail.requestConfig.parameters;p.quality=document.getElementById('dl-quality').value;p.codec=document.getElementById('dl-codec').value;p.audio=document.getElementById('dl-audio').value;p.hdr=document.getElementById('dl-hdr').value;p.sort=document.getElementById('dl-sort').value;p.release_group=document.getElementById('dl-release-group').value;p.verified=document.getElementById('dl-verified').checked?'on':''"
+                      hx-vals="js:{media_id: '{{ media.media_id }}', media_type: '{{ media_type }}', source: '{{ media.source }}', title: '{{ media.title|escapejs }}', mode: 'advanced', quality: document.getElementById('dl-quality').value, codec: document.getElementById('dl-codec').value, audio: document.getElementById('dl-audio').value, hdr: document.getElementById('dl-hdr').value, sort: document.getElementById('dl-sort').value, release_group: document.getElementById('dl-release-group').value, verified: document.getElementById('dl-verified').checked ? 'on' : ''}"
                       hx-target="#download-results"
                       hx-swap="innerHTML">
                 Search Torrents
