@@ -288,8 +288,17 @@ def download_progress(request):
                 downloaded_str = f"{downloaded / 1024:.1f} KB"
 
             # Format ETA
-            if eta_seconds and eta_seconds > 0:
-                hours, remainder = divmod(int(eta_seconds), 3600)
+            import datetime as _dt
+            if isinstance(eta_seconds, _dt.timedelta) and eta_seconds.total_seconds() > 0:
+                total_secs = int(eta_seconds.total_seconds())
+                hours, remainder = divmod(total_secs, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                if hours > 0:
+                    eta = f"{hours}h {minutes}m"
+                else:
+                    eta = f"{minutes}m {seconds}s"
+            elif isinstance(eta_seconds, int) and eta_seconds > 0:
+                hours, remainder = divmod(eta_seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 if hours > 0:
                     eta = f"{hours}h {minutes}m"
