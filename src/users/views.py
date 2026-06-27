@@ -479,12 +479,14 @@ def update_download_settings(request):
 
     request.user.download_prefer_verified = "download_prefer_verified" in request.POST
     request.user.download_prefer_best_quality = "download_prefer_best_quality" in request.POST
+    request.user.download_prefer_efficient = "download_prefer_efficient" in request.POST
 
     request.user.save(update_fields=[
         "download_client",
         *fields_to_save,
         "download_prefer_verified",
         "download_prefer_best_quality",
+        "download_prefer_efficient",
     ])
     messages.success(request, "Download settings updated successfully")
 

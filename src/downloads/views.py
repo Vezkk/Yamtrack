@@ -32,6 +32,16 @@ def _is_verified(torrent):
     return False
 
 
+def _efficiency_score(torrent):
+    """Calculate quality-per-GB ratio. Higher = more efficient."""
+    score = torrent.get("qualityScore", 0)
+    size_bytes = torrent.get("sizeBytes", 1)
+    size_gb = size_bytes / (1024 ** 3)
+    if size_gb <= 0:
+        size_gb = 0.1
+    return score / size_gb
+
+
 def _pick_best_result(torrents, user):
     """Pick the best torrent result based on user preferences with scoring."""
     if not torrents:
@@ -47,6 +57,15 @@ def _pick_best_result(torrents, user):
         verified = [t for t in filtered if _is_verified(t)]
         if verified:
             filtered = verified
+
+    # Efficiency mode: pick smallest good-quality torrent
+    if user.download_prefer_efficient:
+        # Skip garbage (qualityScore < 60)
+        good = [t for t in filtered if t.get("qualityScore", 0) >= 60]
+        if good:
+            filtered = good
+        filtered.sort(key=_efficiency_score, reverse=True)
+        return filtered[0] if filtered else None
 
     # Score each torrent by preference matches
     def _score(t):
@@ -126,6 +145,8 @@ def download_search(request):
         torrents.sort(key=lambda t: t.get("seeders", 0), reverse=True)
     elif sort_by == "size":
         torrents.sort(key=lambda t: t.get("sizeBytes", 0), reverse=True)
+    elif sort_by == "efficient":
+        torrents.sort(key=_efficiency_score, reverse=True)
     else:
         torrents.sort(key=lambda t: t.get("qualityScore", 0), reverse=True)
 

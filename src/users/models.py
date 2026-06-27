@@ -503,6 +503,10 @@ class User(AbstractUser):
         default=True,
         help_text="True = best quality score, False = most seeders",
     )
+    download_prefer_efficient = models.BooleanField(
+        default=False,
+        help_text="Pick smallest good-quality torrent (quality per GB ratio)",
+    )
 
     class Meta:
         """Meta options for the model."""
