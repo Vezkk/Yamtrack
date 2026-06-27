@@ -318,9 +318,7 @@ def download_progress(request):
 
         except Exception:
             logger.exception("Failed to get progress for task %s", task.id)
-            # Mark task as inactive if Transmission can't find it
-            task.is_active = False
-            task.save(update_fields=["is_active"])
+            # Don't mark inactive — just skip this poll cycle. It may be a transient error.
 
     return render(request, "downloads/download_progress.html", {
         "tasks": progress_data,
