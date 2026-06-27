@@ -9,6 +9,11 @@ from downloads.clients.torrentclaw import TorrentClawClient
 logger = logging.getLogger(__name__)
 
 
+def _info_hash_to_magnet(info_hash):
+    """Build a magnet link from an info hash (standard BTIH format)."""
+    return f"magnet:?xt=urn:btih:{info_hash}"
+
+
 def _get_torrentclaw_client(user):
     api_key = user.torrentclaw_api_key if user.torrentclaw_api_key else None
     return TorrentClawClient(api_key=api_key)
@@ -133,30 +138,8 @@ def download_add(request):
             "message": "No torrent selected. Please try again.",
         })
 
-    client = _get_torrentclaw_client(request.user)
-    torrent_data = client.get_magnet(info_hash)
-
-    if not torrent_data:
-        return render(request, "downloads/download_status.html", {
-            "success": False,
-            "message": "TorrentClaw API is unavailable. Check your API key in Settings.",
-        })
-
-    # Check for API error responses
-    if "error" in torrent_data or "message" in torrent_data:
-        error_msg = torrent_data.get("error") or torrent_data.get("message", "Unknown API error")
-        return render(request, "downloads/download_status.html", {
-            "success": False,
-            "message": f"TorrentClaw error: {error_msg}",
-        })
-
-    magnet = torrent_data.get("magnet") or torrent_data.get("magnetUrl", "")
-    if not magnet:
-        return render(request, "downloads/download_status.html", {
-            "success": False,
-            "message": "No magnet link available for this torrent. It may be a .torrent-only release.",
-        })
-
+    # Build magnet directly from info_hash — works without API key
+    magnet = _info_hash_to_magnet(info_hash)
     return _add_to_transmission_with_magnet(request, magnet, title)
 
 
@@ -166,10 +149,8 @@ def _add_to_transmission(request, torrent):
     title = torrent.get("rawTitle", torrent.get("content_title", "Unknown"))
     magnet = torrent.get("magnetUrl") or torrent.get("magnet", "")
 
-    if not magnet:
-        magnet_data = _get_torrentclaw_client(request.user).get_magnet(info_hash)
-        if magnet_data:
-            magnet = magnet_data.get("magnet") or magnet_data.get("magnetUrl", "")
+    if not magnet and info_hash:
+        magnet = _info_hash_to_magnet(info_hash)
 
     if not magnet:
         return render(request, "downloads/download_status.html", {
