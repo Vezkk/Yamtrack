@@ -448,7 +448,6 @@ def update_download_settings(request):
     """Update download client and search settings."""
     fields_to_save = [
         "torrentclaw_api_key",
-        "download_client",
         "download_client_url",
         "download_client_user",
         "download_client_pass",
@@ -470,10 +469,19 @@ def update_download_settings(request):
         else:
             setattr(request.user, field, request.POST.get(field, "").strip())
 
+    # Auto-detect client type: if URL is provided, enable the matching client
+    client_url = request.user.download_client_url
+    if client_url:
+        if "transmission" in client_url.lower() or not request.user.download_client:
+            request.user.download_client = "transmission"
+    else:
+        request.user.download_client = ""
+
     request.user.download_prefer_verified = "download_prefer_verified" in request.POST
     request.user.download_prefer_best_quality = "download_prefer_best_quality" in request.POST
 
     request.user.save(update_fields=[
+        "download_client",
         *fields_to_save,
         "download_prefer_verified",
         "download_prefer_best_quality",

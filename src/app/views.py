@@ -332,7 +332,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             tvdb_id=tvdb_id,
         )
 
-    download_client_available = bool(user.download_client and user.download_client_url)
+    download_client_available = bool(user.download_client_url)
 
     context = {
         "media": media_metadata,
@@ -425,7 +425,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             tvdb_id=tvdb_id,
         )
 
-    download_client_available = bool(user.download_client and user.download_client_url)
+    download_client_available = bool(user.download_client_url)
 
     context = {
         "media": season_metadata,
