@@ -1,0 +1,57 @@
+{% if tasks %}
+  {% for t in tasks %}
+    <div class="dl-progress-item bg-[#39404b] p-3 rounded-md mb-2" style="animation: dl-fade-in 0.3s ease-out both">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-sm text-gray-200 truncate flex-1 mr-3" title="{{ t.title }}">{{ t.title }}</p>
+        {% if t.status == "seeding" %}
+          <span class="px-1.5 py-0.5 bg-green-600/80 text-white text-[10px] rounded font-medium uppercase shrink-0">Seeding</span>
+        {% elif t.status == "downloading" %}
+          <span class="px-1.5 py-0.5 bg-blue-600/80 text-white text-[10px] rounded font-medium uppercase shrink-0">Downloading</span>
+        {% elif t.status == "stopped" %}
+          <span class="px-1.5 py-0.5 bg-yellow-600/80 text-white text-[10px] rounded font-medium uppercase shrink-0">Paused</span>
+        {% elif t.status == "checking" %}
+          <span class="px-1.5 py-0.5 bg-indigo-600/80 text-white text-[10px] rounded font-medium uppercase shrink-0">Checking</span>
+        {% else %}
+          <span class="px-1.5 py-0.5 bg-gray-600/80 text-white text-[10px] rounded font-medium uppercase shrink-0">{{ t.status }}</span>
+        {% endif %}
+      </div>
+
+      {# Progress bar #}
+      <div class="w-full h-2 bg-[#2a2f35] rounded-full overflow-hidden mb-1.5">
+        <div class="h-full rounded-full transition-all duration-700 ease-out
+          {% if t.status == 'seeding' %}bg-green-500
+          {% elif t.percent >= 100 %}bg-green-500
+          {% elif t.percent >= 70 %}bg-blue-500
+          {% elif t.percent >= 40 %}bg-indigo-500
+          {% else %}bg-indigo-400{% endif %}"
+          style="width: {{ t.percent }}%">
+        </div>
+      </div>
+
+      {# Stats row #}
+      <div class="flex items-center justify-between text-[11px] text-gray-500">
+        <div class="flex items-center gap-3">
+          <span class="text-gray-300 font-medium">{{ t.percent }}%</span>
+          {% if t.status == "downloading" %}
+            <span>{{ t.downloaded }} / {{ t.total }}</span>
+            <span class="text-blue-400">{{ t.speed }}</span>
+          {% elif t.status == "seeding" %}
+            <span>{{ t.total }}</span>
+            <span class="text-green-400">Upload: {{ t.speed }}</span>
+          {% else %}
+            <span>{{ t.total }}</span>
+          {% endif %}
+        </div>
+        {% if t.eta %}
+          <span>ETA: {{ t.eta }}</span>
+        {% endif %}
+      </div>
+
+      {% if t.error %}
+        <p class="text-xs text-red-400 mt-1">{{ t.error }}</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  {# No active tasks — hide the container silently #}
+{% endif %}

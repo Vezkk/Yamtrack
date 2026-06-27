@@ -2,9 +2,11 @@ import logging
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from downloads.clients.torrentclaw import TorrentClawClient
+from downloads.models import DownloadTask
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,7 @@ def download_search(request):
     if mode == "instant":
         best = _pick_best_result(torrents, request.user)
         if best:
-            return _add_to_transmission(request, best)
+            return _add_to_transmission(request, best, media_id, media_type)
         return render(request, "downloads/download_status.html", {
             "success": False,
             "message": "No suitable torrent found matching your preferences. Try adjusting your download settings.",
@@ -131,6 +133,8 @@ def download_add(request):
     """HTMX endpoint: add a specific torrent to Transmission."""
     info_hash = request.POST.get("info_hash", "")
     title = request.POST.get("title", "")
+    media_id = request.POST.get("media_id", "")
+    media_type = request.POST.get("media_type", "")
 
     if not info_hash:
         return render(request, "downloads/download_status.html", {
@@ -140,10 +144,10 @@ def download_add(request):
 
     # Build magnet directly from info_hash — works without API key
     magnet = _info_hash_to_magnet(info_hash)
-    return _add_to_transmission_with_magnet(request, magnet, title)
+    return _add_to_transmission_with_magnet(request, magnet, title, info_hash, media_id, media_type)
 
 
-def _add_to_transmission(request, torrent):
+def _add_to_transmission(request, torrent, media_id="", media_type=""):
     """Add a torrent result directly to Transmission."""
     info_hash = torrent.get("infoHash", "")
     title = torrent.get("rawTitle", torrent.get("content_title", "Unknown"))
@@ -158,10 +162,10 @@ def _add_to_transmission(request, torrent):
             "message": f"Could not get magnet link for: {title[:60]}",
         })
 
-    return _add_to_transmission_with_magnet(request, magnet, title)
+    return _add_to_transmission_with_magnet(request, magnet, title, info_hash, media_id, media_type)
 
 
-def _add_to_transmission_with_magnet(request, magnet, title):
+def _add_to_transmission_with_magnet(request, magnet, title, info_hash="", media_id="", media_type=""):
     """Add a magnet link to Transmission and return status HTML."""
     user = request.user
 
@@ -181,7 +185,18 @@ def _add_to_transmission_with_magnet(request, magnet, title):
         )
         try:
             download_dir = user.download_default_path or None
-            tc.add_torrent(magnet=magnet, download_dir=download_dir)
+            t = tc.add_torrent(magnet=magnet, download_dir=download_dir)
+
+            # Track the download
+            DownloadTask.objects.create(
+                user=user,
+                media_id=media_id,
+                media_type=media_type,
+                title=title[:500],
+                info_hash=info_hash or getattr(t, "info_hash", "")[:40],
+                transmission_id=getattr(t, "id", None),
+            )
+
             return render(request, "downloads/download_status.html", {
                 "success": True,
                 "message": f"Added to Transmission: {title[:60]}",
@@ -203,4 +218,110 @@ def _add_to_transmission_with_magnet(request, magnet, title):
     return render(request, "downloads/download_status.html", {
         "success": False,
         "message": f"Unsupported download client: {user.download_client}",
+    })
+
+
+@require_GET
+@login_required
+def download_progress(request):
+    """HTMX endpoint: return progress for active downloads on a media item."""
+    media_id = request.GET.get("media_id", "")
+    media_type = request.GET.get("media_type", "")
+
+    tasks = DownloadTask.objects.filter(
+        user=request.user,
+        media_id=media_id,
+        media_type=media_type,
+        is_active=True,
+    )
+
+    from downloads.clients.transmission import TransmissionClient
+
+    tc = None
+    progress_data = []
+
+    for task in tasks:
+        if task.transmission_id is None:
+            continue
+
+        try:
+            if tc is None:
+                tc = TransmissionClient(
+                    request.user.download_client_url,
+                    request.user.download_client_user,
+                    request.user.download_client_pass,
+                )
+            t = tc.get_torrent(task.transmission_id)
+
+            percent = getattr(t, "percent_done", 0) * 100
+            status = getattr(t, "status", "unknown")
+            rate = getattr(t, "rate_download", 0)
+            total = getattr(t, "total_size", 0)
+            left = getattr(t, "left_until_done", 0)
+            eta_seconds = getattr(t, "eta", -1)
+            error_string = getattr(t, "error_string", "")
+
+            # Format speed
+            if rate > 1073741824:
+                speed = f"{rate / 1073741824:.1f} GB/s"
+            elif rate > 1048576:
+                speed = f"{rate / 1048576:.1f} MB/s"
+            elif rate > 1024:
+                speed = f"{rate / 1024:.1f} KB/s"
+            else:
+                speed = f"{rate} B/s"
+
+            # Format size
+            if total > 1073741824:
+                total_str = f"{total / 1073741824:.1f} GB"
+            elif total > 1048576:
+                total_str = f"{total / 1048576:.1f} MB"
+            else:
+                total_str = f"{total / 1024:.1f} KB"
+
+            downloaded = total - left
+            if downloaded > 1073741824:
+                downloaded_str = f"{downloaded / 1073741824:.1f} GB"
+            elif downloaded > 1048576:
+                downloaded_str = f"{downloaded / 1048576:.1f} MB"
+            else:
+                downloaded_str = f"{downloaded / 1024:.1f} KB"
+
+            # Format ETA
+            if eta_seconds and eta_seconds > 0:
+                hours, remainder = divmod(int(eta_seconds), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                if hours > 0:
+                    eta = f"{hours}h {minutes}m"
+                else:
+                    eta = f"{minutes}m {seconds}s"
+            else:
+                eta = ""
+
+            # Mark completed
+            if percent >= 100 or status == "seeding":
+                task.is_active = False
+                task.completed_at = timezone.now()
+                task.save(update_fields=["is_active", "completed_at"])
+
+            progress_data.append({
+                "task_id": task.id,
+                "title": task.title[:80],
+                "percent": round(percent, 1),
+                "status": status,
+                "speed": speed,
+                "total": total_str,
+                "downloaded": downloaded_str,
+                "eta": eta,
+                "error": error_string,
+            })
+
+        except Exception:
+            logger.exception("Failed to get progress for task %s", task.id)
+            # Mark task as inactive if Transmission can't find it
+            task.is_active = False
+            task.save(update_fields=["is_active"])
+
+    return render(request, "downloads/download_progress.html", {
+        "tasks": progress_data,
     })

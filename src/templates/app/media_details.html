@@ -565,6 +565,11 @@
             </div>
             <div id="download-results" class="mt-3"></div>
             <div id="download-status" class="mt-3"></div>
+            <div id="download-progress"
+                 hx-get="{% url 'download_progress' %}?media_id={{ media.media_id }}&media_type={{ media_type }}"
+                 hx-trigger="load, every 2s"
+                 hx-swap="innerHTML"
+                 class="mt-3"></div>
           {% elif jellyfin_media_available %}
             <p class="text-gray-500 text-sm">Already in your Jellyfin library</p>
           {% elif not download_client_available %}
