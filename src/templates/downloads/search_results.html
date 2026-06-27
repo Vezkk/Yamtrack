@@ -1,42 +1,55 @@
 {% if torrents %}
   <div class="space-y-2">
     {% for t in torrents %}
-      <div class="bg-[#39404b] p-3 rounded-md flex items-center gap-3">
+      <div class="dl-result bg-[#39404b] p-3 rounded-md flex items-center gap-3 hover:bg-[#404854] transition-all cursor-default"
+           style="animation: dl-fade-in 0.3s ease-out {{ forloop.counter0 }}00ms both">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
             {% if t.verified or t.threatLevel == "clean" or t.scanStatus == "success" %}
-              <span class="px-1.5 py-0.5 bg-green-600 text-white text-xs rounded">Verified</span>
+              <span class="px-1.5 py-0.5 bg-green-600/80 text-white text-[10px] rounded font-medium uppercase tracking-wide">Verified</span>
             {% endif %}
             {% if t.qualityScore %}
-              <span class="px-1.5 py-0.5 bg-indigo-600 text-white text-xs rounded">{{ t.qualityScore }}</span>
+              <span class="px-1.5 py-0.5 bg-indigo-600/80 text-white text-[10px] rounded font-medium">{{ t.qualityScore }}</span>
+            {% endif %}
+            {% if t.quality %}
+              <span class="px-1.5 py-0.5 bg-[#2a2f35] text-gray-300 text-[10px] rounded">{{ t.quality }}</span>
+            {% endif %}
+            {% if t.codec %}
+              <span class="px-1.5 py-0.5 bg-[#2a2f35] text-gray-300 text-[10px] rounded">{{ t.codec }}</span>
             {% endif %}
           </div>
           <p class="text-sm text-gray-200 truncate" title="{{ t.rawTitle }}">{{ t.rawTitle }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">{{ t.content_title }} ({{ t.content_year }})</p>
-          <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
-            {% if t.quality %}<span>{{ t.quality }}</span>{% endif %}
-            {% if t.codec %}<span>{{ t.codec }}</span>{% endif %}
+          {% if t.content_title %}
+            <p class="text-xs text-gray-500 mt-0.5">{{ t.content_title }}{% if t.content_year %} ({{ t.content_year }}){% endif %}</p>
+          {% endif %}
+          <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-500">
             {% if t.audioCodec %}<span>{{ t.audioCodec }}</span>{% endif %}
             {% if t.hdrType %}<span>{{ t.hdrType }}</span>{% endif %}
             {% if t.sizeBytes %}
-              <span>
-                {% widthratio t.sizeBytes 1073741824 1 %} GB
-              </span>
+              <span>{% widthratio t.sizeBytes 1073741824 1 %} GB</span>
             {% endif %}
-            <span>{{ t.seeders|default:"0" }} seeders</span>
+            <span class="{% if t.seeders > 50 %}text-green-400{% elif t.seeders > 10 %}text-yellow-400{% endif %}">
+              {{ t.seeders|default:"0" }} seeders
+            </span>
           </div>
         </div>
-        <button class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-md transition-colors cursor-pointer shrink-0"
+        <button class="dl-add-btn px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm rounded-md transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
                 hx-post="{% url 'download_add' %}"
                 hx-vals='{"info_hash": "{{ t.infoHash }}", "title": "{{ t.rawTitle|escapejs }}"}'
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#download-status"
-                hx-swap="innerHTML">
-          Download
+                hx-swap="innerHTML"
+                hx-indicator="this">
+          <svg class="htmx-indicator animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          <span class="dl-add-label">Download</span>
         </button>
       </div>
     {% endfor %}
   </div>
 {% else %}
-  <p class="text-gray-400 text-sm">No torrents found for "{{ query }}".</p>
+  <div class="dl-result text-center py-6" style="animation: dl-fade-in 0.3s ease-out both">
+    <svg class="w-8 h-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    <p class="text-gray-400 text-sm">No torrents found for "{{ query }}".</p>
+    <p class="text-gray-500 text-xs mt-1">Try adjusting your filters or search a different title.</p>
+  </div>
 {% endif %}

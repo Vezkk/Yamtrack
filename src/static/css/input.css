@@ -193,3 +193,55 @@
   font-size: 15px;
   margin-top: 3px;
 }
+
+/* Download section animations */
+@keyframes dl-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dl-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dl-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.dl-loading {
+  background: linear-gradient(90deg, #39404b 25%, #454d5a 50%, #39404b 75%);
+  background-size: 200% 100%;
+  animation: dl-shimmer 1.5s ease-in-out infinite;
+}
+
+.dl-btn.htmx-request {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.dl-add-btn.htmx-request .dl-add-label {
+  display: none;
+}
+
+.dl-add-btn.htmx-request {
+  min-width: 5rem;
+  justify-content: center;
+}

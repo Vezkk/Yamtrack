@@ -1,7 +1,6 @@
 import logging
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -108,7 +107,7 @@ def download_search(request):
             return _add_to_transmission(request, best)
         return render(request, "downloads/download_status.html", {
             "success": False,
-            "message": "No suitable torrent found matching your preferences.",
+            "message": "No suitable torrent found matching your preferences. Try adjusting your download settings.",
         })
 
     return render(request, "downloads/search_results.html", {
@@ -131,7 +130,7 @@ def download_add(request):
     if not info_hash:
         return render(request, "downloads/download_status.html", {
             "success": False,
-            "message": "No torrent selected.",
+            "message": "No torrent selected. Please try again.",
         })
 
     client = _get_torrentclaw_client(request.user)
@@ -140,14 +139,22 @@ def download_add(request):
     if not torrent_data:
         return render(request, "downloads/download_status.html", {
             "success": False,
-            "message": "Could not fetch torrent data from TorrentClaw.",
+            "message": "TorrentClaw API is unavailable. Check your API key in Settings.",
+        })
+
+    # Check for API error responses
+    if "error" in torrent_data or "message" in torrent_data:
+        error_msg = torrent_data.get("error") or torrent_data.get("message", "Unknown API error")
+        return render(request, "downloads/download_status.html", {
+            "success": False,
+            "message": f"TorrentClaw error: {error_msg}",
         })
 
     magnet = torrent_data.get("magnet") or torrent_data.get("magnetUrl", "")
     if not magnet:
         return render(request, "downloads/download_status.html", {
             "success": False,
-            "message": "No magnet link available for this torrent.",
+            "message": "No magnet link available for this torrent. It may be a .torrent-only release.",
         })
 
     return _add_to_transmission_with_magnet(request, magnet, title)
@@ -167,7 +174,7 @@ def _add_to_transmission(request, torrent):
     if not magnet:
         return render(request, "downloads/download_status.html", {
             "success": False,
-            "message": f"Could not get magnet link for: {title}",
+            "message": f"Could not get magnet link for: {title[:60]}",
         })
 
     return _add_to_transmission_with_magnet(request, magnet, title)
@@ -196,13 +203,20 @@ def _add_to_transmission_with_magnet(request, magnet, title):
             tc.add_torrent(magnet=magnet, download_dir=download_dir)
             return render(request, "downloads/download_status.html", {
                 "success": True,
-                "message": f"Added to Transmission: {title}",
+                "message": f"Added to Transmission: {title[:60]}",
             })
-        except Exception:
-            logger.exception("Failed to add torrent to Transmission")
+        except ConnectionError:
+            logger.exception("Transmission connection failed")
             return render(request, "downloads/download_status.html", {
                 "success": False,
-                "message": "Failed to add torrent to Transmission. Check client settings.",
+                "message": "Cannot connect to Transmission. Check the client URL and ensure it is running.",
+            })
+        except Exception as exc:
+            logger.exception("Failed to add torrent to Transmission")
+            msg = str(exc) if str(exc) else "Check client settings and ensure Transmission is accessible."
+            return render(request, "downloads/download_status.html", {
+                "success": False,
+                "message": f"Transmission error: {msg}",
             })
 
     return render(request, "downloads/download_status.html", {
