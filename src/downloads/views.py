@@ -33,24 +33,45 @@ def _is_verified(torrent):
 
 
 def _pick_best_result(torrents, user):
-    """Pick the best torrent result based on user preferences."""
+    """Pick the best torrent result based on user preferences with scoring."""
     if not torrents:
         return None
 
+    # Hard filter: minimum seeders
     filtered = [t for t in torrents if t.get("seeders", 0) >= user.download_min_seeders]
     if not filtered:
         filtered = torrents
 
+    # Hard filter: verified only (if enabled)
     if user.download_prefer_verified:
         verified = [t for t in filtered if _is_verified(t)]
         if verified:
             filtered = verified
 
-    if user.download_prefer_best_quality:
-        filtered.sort(key=lambda t: t.get("qualityScore", 0), reverse=True)
-    else:
-        filtered.sort(key=lambda t: t.get("seeders", 0), reverse=True)
+    # Score each torrent by preference matches
+    def _score(t):
+        score = 0
+        pref_quality = (user.download_preferred_quality or "").lower()
+        pref_codec = (user.download_preferred_codec or "").lower()
+        pref_audio = (user.download_preferred_audio or "").lower()
+        pref_hdr = (user.download_preferred_hdr or "").lower()
 
+        if pref_quality and pref_quality in str(t.get("quality", "")).lower():
+            score += 4
+        if pref_codec and pref_codec in str(t.get("codec", "")).lower():
+            score += 2
+        if pref_audio and pref_audio in str(t.get("audioCodec", "")).lower():
+            score += 2
+        if pref_hdr and pref_hdr in str(t.get("hdrType", "")).lower():
+            score += 2
+        if _is_verified(t):
+            score += 1
+
+        # Secondary sort key
+        sort_key = t.get("qualityScore", 0) if user.download_prefer_best_quality else t.get("seeders", 0)
+        return (score, sort_key)
+
+    filtered.sort(key=_score, reverse=True)
     return filtered[0] if filtered else None
 
 
