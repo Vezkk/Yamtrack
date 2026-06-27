@@ -4,26 +4,31 @@
       <div class="bg-[#39404b] p-3 rounded-md flex items-center gap-3">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
-            {% if t.verified %}
+            {% if t.verified or t.threatLevel == "clean" or t.scanStatus == "success" %}
               <span class="px-1.5 py-0.5 bg-green-600 text-white text-xs rounded">Verified</span>
             {% endif %}
             {% if t.qualityScore %}
               <span class="px-1.5 py-0.5 bg-indigo-600 text-white text-xs rounded">{{ t.qualityScore }}</span>
             {% endif %}
           </div>
-          <p class="text-sm text-gray-200 truncate" title="{{ t.title }}">{{ t.title }}</p>
+          <p class="text-sm text-gray-200 truncate" title="{{ t.rawTitle }}">{{ t.rawTitle }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ t.content_title }} ({{ t.content_year }})</p>
           <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
             {% if t.quality %}<span>{{ t.quality }}</span>{% endif %}
             {% if t.codec %}<span>{{ t.codec }}</span>{% endif %}
-            {% if t.audio %}<span>{{ t.audio }}</span>{% endif %}
-            {% if t.hdr %}<span>{{ t.hdr }}</span>{% endif %}
-            {% if t.size %}<span>{{ t.size|filesizeformat }}</span>{% endif %}
+            {% if t.audioCodec %}<span>{{ t.audioCodec }}</span>{% endif %}
+            {% if t.hdrType %}<span>{{ t.hdrType }}</span>{% endif %}
+            {% if t.sizeBytes %}
+              <span>
+                {% widthratio t.sizeBytes 1073741824 1 %} GB
+              </span>
+            {% endif %}
             <span>{{ t.seeders|default:"0" }} seeders</span>
           </div>
         </div>
         <button class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-md transition-colors cursor-pointer shrink-0"
                 hx-post="{% url 'download_add' %}"
-                hx-vals='{"info_hash": "{{ t.infoHash }}", "title": "{{ t.title|escapejs }}"}'
+                hx-vals='{"info_hash": "{{ t.infoHash }}", "title": "{{ t.rawTitle|escapejs }}"}'
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#download-status"
                 hx-swap="innerHTML">

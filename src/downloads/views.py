@@ -15,36 +15,37 @@ def _get_torrentclaw_client(user):
     return TorrentClawClient(api_key=api_key)
 
 
-def _pick_best_result(results, user):
+def _is_verified(torrent):
+    """Check if a torrent is considered verified."""
+    if torrent.get("verified"):
+        return True
+    if torrent.get("threatLevel") == "clean":
+        return True
+    if torrent.get("scanStatus") == "success":
+        return True
+    return False
+
+
+def _pick_best_result(torrents, user):
     """Pick the best torrent result based on user preferences."""
-    if not results:
+    if not torrents:
         return None
 
-    filtered = [r for r in results if r.get("seeders", 0) >= user.download_min_seeders]
+    filtered = [t for t in torrents if t.get("seeders", 0) >= user.download_min_seeders]
     if not filtered:
-        filtered = results
+        filtered = torrents
 
     if user.download_prefer_verified:
-        verified = [r for r in filtered if r.get("verified")]
+        verified = [t for t in filtered if _is_verified(t)]
         if verified:
             filtered = verified
 
     if user.download_prefer_best_quality:
-        filtered.sort(key=lambda r: r.get("qualityScore", 0), reverse=True)
+        filtered.sort(key=lambda t: t.get("qualityScore", 0), reverse=True)
     else:
-        filtered.sort(key=lambda r: r.get("seeders", 0), reverse=True)
+        filtered.sort(key=lambda t: t.get("seeders", 0), reverse=True)
 
     return filtered[0] if filtered else None
-
-
-def _format_size(size_bytes):
-    if not size_bytes:
-        return "Unknown"
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if abs(size_bytes) < 1024:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024
-    return f"{size_bytes:.1f} PB"
 
 
 @require_GET
@@ -67,9 +68,8 @@ def download_search(request):
 
     query = title
     client = _get_torrentclaw_client(request.user)
-    result = client.search(query, limit=30)
+    torrents = client.search(query, limit=30)
 
-    torrents = result.get("results", [])
     if not torrents:
         return render(request, "downloads/search_results.html", {
             "torrents": [],
@@ -80,23 +80,25 @@ def download_search(request):
             "title": title,
         })
 
+    # Apply client-side filters (API doesn't support all of these)
     if quality:
         torrents = [t for t in torrents if quality.lower() in str(t.get("quality", "")).lower()]
     if codec:
         torrents = [t for t in torrents if codec.lower() in str(t.get("codec", "")).lower()]
     if audio:
-        torrents = [t for t in torrents if audio.lower() in str(t.get("audio", "")).lower()]
+        torrents = [t for t in torrents if audio.lower() in str(t.get("audioCodec", "")).lower()]
     if hdr:
-        torrents = [t for t in torrents if hdr.lower() in str(t.get("hdr", "")).lower()]
+        torrents = [t for t in torrents if hdr.lower() in str(t.get("hdrType", "")).lower()]
     if verified:
-        torrents = [t for t in torrents if t.get("verified")]
+        torrents = [t for t in torrents if _is_verified(t)]
     if release_group:
-        torrents = [t for t in torrents if release_group.lower() in str(t.get("releaseGroup", t.get("title", ""))).lower()]
+        torrents = [t for t in torrents if release_group.lower() in str(t.get("releaseGroup", t.get("rawTitle", ""))).lower()]
 
+    # Sort
     if sort_by == "seeders":
         torrents.sort(key=lambda t: t.get("seeders", 0), reverse=True)
     elif sort_by == "size":
-        torrents.sort(key=lambda t: t.get("size", 0), reverse=True)
+        torrents.sort(key=lambda t: t.get("sizeBytes", 0), reverse=True)
     else:
         torrents.sort(key=lambda t: t.get("qualityScore", 0), reverse=True)
 
@@ -141,7 +143,7 @@ def download_add(request):
             "message": "Could not fetch torrent data from TorrentClaw.",
         })
 
-    magnet = torrent_data.get("magnet") or torrent_data.get("magnetLink", "")
+    magnet = torrent_data.get("magnet") or torrent_data.get("magnetUrl", "")
     if not magnet:
         return render(request, "downloads/download_status.html", {
             "success": False,
@@ -154,13 +156,13 @@ def download_add(request):
 def _add_to_transmission(request, torrent):
     """Add a torrent result directly to Transmission."""
     info_hash = torrent.get("infoHash", "")
-    title = torrent.get("title", "Unknown")
-    magnet = torrent.get("magnet") or torrent.get("magnetLink", "")
+    title = torrent.get("rawTitle", torrent.get("content_title", "Unknown"))
+    magnet = torrent.get("magnetUrl") or torrent.get("magnet", "")
 
     if not magnet:
         magnet_data = _get_torrentclaw_client(request.user).get_magnet(info_hash)
         if magnet_data:
-            magnet = magnet_data.get("magnet") or magnet_data.get("magnetLink", "")
+            magnet = magnet_data.get("magnet") or magnet_data.get("magnetUrl", "")
 
     if not magnet:
         return render(request, "downloads/download_status.html", {
@@ -175,7 +177,7 @@ def _add_to_transmission_with_magnet(request, magnet, title):
     """Add a magnet link to Transmission and return status HTML."""
     user = request.user
 
-    if not user.download_client or not user.download_client_url:
+    if not user.download_client_url:
         return render(request, "downloads/download_status.html", {
             "success": False,
             "message": "Download client not configured. Go to Settings > Integrations.",
@@ -200,7 +202,7 @@ def _add_to_transmission_with_magnet(request, magnet, title):
             logger.exception("Failed to add torrent to Transmission")
             return render(request, "downloads/download_status.html", {
                 "success": False,
-                "message": f"Failed to add torrent to Transmission. Check client settings.",
+                "message": "Failed to add torrent to Transmission. Check client settings.",
             })
 
     return render(request, "downloads/download_status.html", {
