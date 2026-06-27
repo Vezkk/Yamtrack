@@ -50,4 +50,14 @@ urlpatterns = [
         views.fetch_jellyfin_users,
         name="fetch_jellyfin_users",
     ),
+    path(
+        "update_download_settings",
+        views.update_download_settings,
+        name="update_download_settings",
+    ),
+    path(
+        "test_download_connection",
+        views.test_download_connection,
+        name="test_download_connection",
+    ),
 ]

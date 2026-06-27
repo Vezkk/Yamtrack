@@ -420,6 +420,193 @@
         </div>
       </div>
     </div>
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-4">
+        {% include "app/icons/download.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Downloads</h2>
+      </div>
+      <p class="text-gray-400 mb-5 text-sm">Configure torrent search and download client integration.</p>
+      <form method="post" action="{% url 'update_download_settings' %}" class="space-y-4">
+        {% csrf_token %}
+        <div class="bg-[#262a2f] p-4 rounded-md">
+          <h4 class="text-sm font-medium mb-3">Search Provider</h4>
+          <p class="text-gray-400 mb-3 text-sm">
+            TorrentClaw provides quality-scored torrent search. Get an API key at
+            <a href="https://torrentclaw.com" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">torrentclaw.com</a>.
+          </p>
+          <div>
+            <label for="torrentclaw_api_key" class="block text-sm font-medium text-gray-300 mb-1">TorrentClaw API Key</label>
+            <input name="torrentclaw_api_key"
+                   id="torrentclaw_api_key"
+                   class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="text"
+                   placeholder="Optional - leave empty for anonymous access"
+                   value="{{ request.user.torrentclaw_api_key }}">
+            <p class="text-xs text-gray-400 mt-1">Optional. Anonymous access has lower rate limits.</p>
+          </div>
+        </div>
+        <div class="bg-[#262a2f] p-4 rounded-md">
+          <h4 class="text-sm font-medium mb-3">Download Client</h4>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+              <div class="flex-1">
+                <div class="flex items-center text-gray-200 mb-1">
+                  {% include "app/icons/download.svg" with classes="w-5 h-5 mr-2" %}
+                  <span class="text-sm font-medium">Enable Transmission</span>
+                </div>
+                <p class="text-xs text-gray-400 ml-7">Send torrents directly to your Transmission client.</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-4">
+                <input class="sr-only peer"
+                       type="checkbox"
+                       name="download_client"
+                       value="transmission"
+                       {% if request.user.download_client == "transmission" %}checked{% endif %}>
+                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+                </div>
+              </label>
+            </div>
+            <div>
+              <label for="download_client_url" class="block text-sm font-medium text-gray-300 mb-1">Client URL</label>
+              <input name="download_client_url"
+                     id="download_client_url"
+                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="url"
+                     placeholder="http://localhost:9091"
+                     value="{{ request.user.download_client_url }}">
+            </div>
+            <div>
+              <label for="download_client_user" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+              <input name="download_client_user"
+                     id="download_client_user"
+                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="text"
+                     placeholder="Optional"
+                     value="{{ request.user.download_client_user }}">
+            </div>
+            <div>
+              <label for="download_client_pass" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+              <input name="download_client_pass"
+                     id="download_client_pass"
+                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="password"
+                     placeholder="Optional"
+                     value="{{ request.user.download_client_pass }}">
+            </div>
+            <div id="download-connection-status"></div>
+            <button type="button"
+                    class="px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors text-xs cursor-pointer"
+                    hx-post="{% url 'test_download_connection' %}"
+                    hx-include="[name='download_client_url'], [name='download_client_user'], [name='download_client_pass']"
+                    hx-target="#download-connection-status"
+                    hx-swap="innerHTML">
+              Test Connection
+            </button>
+          </div>
+        </div>
+        <div class="bg-[#262a2f] p-4 rounded-md">
+          <h4 class="text-sm font-medium mb-3">Download Preferences</h4>
+          <p class="text-gray-400 mb-3 text-sm">Default parameters used for Instant Download.</p>
+          <div class="space-y-3">
+            <div>
+              <label for="download_default_path" class="block text-sm font-medium text-gray-300 mb-1">Download Directory</label>
+              <input name="download_default_path"
+                     id="download_default_path"
+                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="text"
+                     placeholder="/downloads/movies"
+                     value="{{ request.user.download_default_path }}">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="download_preferred_quality" class="block text-sm font-medium text-gray-300 mb-1">Quality</label>
+                <select name="download_preferred_quality" id="download_preferred_quality"
+                        class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                  <option value="720p" {% if request.user.download_preferred_quality == "720p" %}selected{% endif %}>720p</option>
+                  <option value="1080p" {% if request.user.download_preferred_quality == "1080p" %}selected{% endif %}>1080p</option>
+                  <option value="2160p" {% if request.user.download_preferred_quality == "2160p" %}selected{% endif %}>2160p (4K)</option>
+                </select>
+              </div>
+              <div>
+                <label for="download_preferred_codec" class="block text-sm font-medium text-gray-300 mb-1">Codec</label>
+                <select name="download_preferred_codec" id="download_preferred_codec"
+                        class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                  <option value="" {% if not request.user.download_preferred_codec %}selected{% endif %}>Any</option>
+                  <option value="x264" {% if request.user.download_preferred_codec == "x264" %}selected{% endif %}>x264</option>
+                  <option value="x265" {% if request.user.download_preferred_codec == "x265" %}selected{% endif %}>x265</option>
+                  <option value="av1" {% if request.user.download_preferred_codec == "av1" %}selected{% endif %}>AV1</option>
+                </select>
+              </div>
+              <div>
+                <label for="download_preferred_audio" class="block text-sm font-medium text-gray-300 mb-1">Audio</label>
+                <select name="download_preferred_audio" id="download_preferred_audio"
+                        class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                  <option value="" {% if not request.user.download_preferred_audio %}selected{% endif %}>Any</option>
+                  <option value="aac" {% if request.user.download_preferred_audio == "aac" %}selected{% endif %}>AAC</option>
+                  <option value="dts" {% if request.user.download_preferred_audio == "dts" %}selected{% endif %}>DTS</option>
+                  <option value="flac" {% if request.user.download_preferred_audio == "flac" %}selected{% endif %}>FLAC</option>
+                  <option value="atmos" {% if request.user.download_preferred_audio == "atmos" %}selected{% endif %}>Dolby Atmos</option>
+                </select>
+              </div>
+              <div>
+                <label for="download_preferred_hdr" class="block text-sm font-medium text-gray-300 mb-1">HDR</label>
+                <select name="download_preferred_hdr" id="download_preferred_hdr"
+                        class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                  <option value="" {% if not request.user.download_preferred_hdr %}selected{% endif %}>Any</option>
+                  <option value="hdr10" {% if request.user.download_preferred_hdr == "hdr10" %}selected{% endif %}>HDR10</option>
+                  <option value="dolby_vision" {% if request.user.download_preferred_hdr == "dolby_vision" %}selected{% endif %}>Dolby Vision</option>
+                  <option value="hdr10plus" {% if request.user.download_preferred_hdr == "hdr10plus" %}selected{% endif %}>HDR10+</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="download_min_seeders" class="block text-sm font-medium text-gray-300 mb-1">Minimum Seeders</label>
+              <input name="download_min_seeders"
+                     id="download_min_seeders"
+                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="number"
+                     min="0"
+                     value="{{ request.user.download_min_seeders }}">
+            </div>
+            <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+              <div class="flex-1">
+                <span class="text-sm font-medium text-gray-200">Prefer verified releases</span>
+                <p class="text-xs text-gray-400">Only use TorrentClaw verified torrents</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-4">
+                <input class="sr-only peer"
+                       type="checkbox"
+                       name="download_prefer_verified"
+                       {% if request.user.download_prefer_verified %}checked{% endif %}>
+                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+                </div>
+              </label>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+              <div class="flex-1">
+                <span class="text-sm font-medium text-gray-200">Sort by quality score</span>
+                <p class="text-xs text-gray-400">Off = sort by most seeders</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-4">
+                <input class="sr-only peer"
+                       type="checkbox"
+                       name="download_prefer_best_quality"
+                       {% if request.user.download_prefer_best_quality %}checked{% endif %}>
+                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="pt-1">
+          <button type="submit"
+                  class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save Download Settings
+          </button>
+        </div>
+      </form>
+    </div>
   {% endblock settings_content %}
 
   {% block js %}

@@ -472,6 +472,101 @@
         </div>
       {% endif %}
 
+      {# Download Section #}
+      <div x-data="{ advancedMode: false }" class="my-4">
+        <div class="bg-[#2a2f35] p-4 rounded-lg">
+          <h3 class="text-sm font-semibold text-gray-400 mb-2">DOWNLOAD</h3>
+          {% if not jellyfin_media_available and download_client_available %}
+            <button class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors cursor-pointer text-sm font-medium"
+                    hx-get="{% url 'download_search' %}"
+                    hx-vals='{"media_id": "{{ media.media_id }}", "media_type": "{{ media_type }}", "source": "{{ media.source }}", "title": "{{ media.title|escapejs }}", "mode": "instant"}'
+                    hx-target="#download-results"
+                    hx-swap="innerHTML">
+              Instant Download
+            </button>
+            <button @click="advancedMode = !advancedMode"
+                    class="w-full px-4 py-2 mt-2 bg-[#363a40] hover:bg-[#3d424a] text-gray-300 rounded-md transition-colors cursor-pointer text-sm">
+              Advanced Download <span :class="advancedMode ? 'rotate-180' : ''" class="inline-block transition-transform">&#9660;</span>
+            </button>
+            <div x-show="advancedMode" x-transition class="mt-3 space-y-3">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Quality</label>
+                  <select id="dl-quality" class="w-full py-1.5 px-2 bg-[#39404b] rounded-md text-white text-xs border border-gray-600">
+                    <option value="">Any</option>
+                    <option value="720p">720p</option>
+                    <option value="1080p">1080p</option>
+                    <option value="2160p">2160p</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Codec</label>
+                  <select id="dl-codec" class="w-full py-1.5 px-2 bg-[#39404b] rounded-md text-white text-xs border border-gray-600">
+                    <option value="">Any</option>
+                    <option value="x264">x264</option>
+                    <option value="x265">x265</option>
+                    <option value="av1">AV1</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Audio</label>
+                  <select id="dl-audio" class="w-full py-1.5 px-2 bg-[#39404b] rounded-md text-white text-xs border border-gray-600">
+                    <option value="">Any</option>
+                    <option value="aac">AAC</option>
+                    <option value="dts">DTS</option>
+                    <option value="flac">FLAC</option>
+                    <option value="atmos">Atmos</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">HDR</label>
+                  <select id="dl-hdr" class="w-full py-1.5 px-2 bg-[#39404b] rounded-md text-white text-xs border border-gray-600">
+                    <option value="">Any</option>
+                    <option value="hdr10">HDR10</option>
+                    <option value="dolby_vision">Dolby Vision</option>
+                    <option value="hdr10plus">HDR10+</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Sort by</label>
+                  <select id="dl-sort" class="w-full py-1.5 px-2 bg-[#39404b] rounded-md text-white text-xs border border-gray-600">
+                    <option value="">Quality Score</option>
+                    <option value="seeders">Most Seeders</option>
+                    <option value="size">Largest</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Release Group</label>
+                  <input id="dl-release-group" type="text" placeholder="Optional"
+                         class="w-full py-1.5 px-2 bg-[#39404b] rounded-md text-white text-xs border border-gray-600">
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input id="dl-verified" type="checkbox" class="rounded border-gray-600">
+                <label for="dl-verified" class="text-xs text-gray-400">Verified only</label>
+              </div>
+              <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors cursor-pointer text-sm"
+                      hx-get="{% url 'download_search' %}"
+                      hx-vals="JSON.stringify({media_id: '{{ media.media_id }}', media_type: '{{ media_type }}', source: '{{ media.source }}', title: '{{ media.title|escapejs }}', mode: 'advanced', quality: document.getElementById('dl-quality').value, codec: document.getElementById('dl-codec').value, audio: document.getElementById('dl-audio').value, hdr: document.getElementById('dl-hdr').value, sort: document.getElementById('dl-sort').value, release_group: document.getElementById('dl-release-group').value, verified: document.getElementById('dl-verified').checked ? 'on' : ''})"
+                      hx-target="#download-results"
+                      hx-swap="innerHTML">
+                Search Torrents
+              </button>
+            </div>
+            <div id="download-results" class="mt-3"></div>
+          {% elif jellyfin_media_available %}
+            <p class="text-gray-500 text-sm">Already in your Jellyfin library</p>
+          {% elif not download_client_available %}
+            <p class="text-gray-500 text-sm">
+              Configure download client in
+              <a href="{% url 'integrations' %}" class="text-indigo-400 hover:underline">Settings &rarr; Integrations</a>
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
         {% if media.details.items %}
           {% for key, value in media.details.items %}

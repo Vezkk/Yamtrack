@@ -309,6 +309,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     # Check Jellyfin availability
     jellyfin_available = False
     jellyfin_url = None
+    jellyfin_media_available = False
     user = request.user
     if user.jellyfin_url and user.jellyfin_api_key:
         external_ids = media_metadata.get("external_ids", {})
@@ -324,6 +325,14 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         if jellyfin_item_id:
             jellyfin_available = True
             jellyfin_url = jellyfin.get_jellyfin_web_url(user, jellyfin_item_id)
+        jellyfin_media_available = jellyfin.check_media_in_library(
+            user,
+            imdb_id=imdb_id,
+            tmdb_id=tmdb_id_val,
+            tvdb_id=tvdb_id,
+        )
+
+    download_client_available = bool(user.download_client and user.download_client_url)
 
     context = {
         "media": media_metadata,
@@ -334,6 +343,8 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "watch_provider_region": request.user.watch_provider_region,
         "jellyfin_available": jellyfin_available,
         "jellyfin_url": jellyfin_url,
+        "jellyfin_media_available": jellyfin_media_available,
+        "download_client_available": download_client_available,
     }
     return render(request, "app/media_details.html", context)
 
@@ -391,6 +402,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     # Check Jellyfin availability for the parent TV show
     jellyfin_available = False
     jellyfin_url = None
+    jellyfin_media_available = False
     user = request.user
     if user.jellyfin_url and user.jellyfin_api_key:
         external_ids = tv_with_seasons_metadata.get("external_ids", {})
@@ -406,6 +418,14 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         if jellyfin_item_id:
             jellyfin_available = True
             jellyfin_url = jellyfin.get_jellyfin_web_url(user, jellyfin_item_id)
+        jellyfin_media_available = jellyfin.check_media_in_library(
+            user,
+            imdb_id=imdb_id,
+            tmdb_id=tmdb_id_val,
+            tvdb_id=tvdb_id,
+        )
+
+    download_client_available = bool(user.download_client and user.download_client_url)
 
     context = {
         "media": season_metadata,
@@ -419,6 +439,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "watch_provider_region": request.user.watch_provider_region,
         "jellyfin_available": jellyfin_available,
         "jellyfin_url": jellyfin_url,
+        "jellyfin_media_available": jellyfin_media_available,
+        "download_client_available": download_client_available,
     }
     return render(request, "app/media_details.html", context)
 

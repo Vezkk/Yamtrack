@@ -129,3 +129,17 @@ def get_jellyfin_web_url(user, jellyfin_item_id):
     """Construct the Jellyfin web player URL for an item."""
     base_url = user.jellyfin_url.rstrip("/")
     return f"{base_url}/web/#/details?id={jellyfin_item_id}"
+
+
+def check_media_in_library(user, imdb_id=None, tmdb_id=None, tvdb_id=None):
+    """Check if media exists in the user's Jellyfin library.
+
+    Returns True if the item is found, False otherwise.
+    Used to hide download button when media is already available.
+    """
+    if not user.jellyfin_url or not user.jellyfin_api_key:
+        return False
+
+    return search_item_by_provider_ids(
+        user, imdb_id=imdb_id, tmdb_id=tmdb_id, tvdb_id=tvdb_id
+    ) is not None

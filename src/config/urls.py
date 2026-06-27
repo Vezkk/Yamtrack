@@ -17,6 +17,7 @@ from redis.asyncio import Redis as RedisClient
 
 urlpatterns = [
     path("", include("app.urls")),
+    path("", include("downloads.urls")),
     path("", include("integrations.urls")),
     path("", include("users.urls")),
     path("", include("lists.urls")),

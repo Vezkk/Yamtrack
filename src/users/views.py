@@ -444,6 +444,75 @@ def fetch_jellyfin_users(request):
 
 
 @require_POST
+def update_download_settings(request):
+    """Update download client and search settings."""
+    fields_to_save = [
+        "torrentclaw_api_key",
+        "download_client",
+        "download_client_url",
+        "download_client_user",
+        "download_client_pass",
+        "download_default_path",
+        "download_preferred_quality",
+        "download_preferred_codec",
+        "download_preferred_audio",
+        "download_preferred_hdr",
+        "download_min_seeders",
+    ]
+    for field in fields_to_save:
+        if field == "download_min_seeders":
+            value = request.POST.get(field, 0)
+            try:
+                value = int(value)
+            except (ValueError, TypeError):
+                value = 0
+            setattr(request.user, field, value)
+        else:
+            setattr(request.user, field, request.POST.get(field, "").strip())
+
+    request.user.download_prefer_verified = "download_prefer_verified" in request.POST
+    request.user.download_prefer_best_quality = "download_prefer_best_quality" in request.POST
+
+    request.user.save(update_fields=[
+        *fields_to_save,
+        "download_prefer_verified",
+        "download_prefer_best_quality",
+    ])
+    messages.success(request, "Download settings updated successfully")
+
+    return redirect("integrations")
+
+
+@require_POST
+def test_download_connection(request):
+    """Test connection to the configured download client."""
+    from downloads.clients.transmission import TransmissionClient
+
+    client_url = request.POST.get("download_client_url", "").strip()
+    client_user = request.POST.get("download_client_user", "").strip()
+    client_pass = request.POST.get("download_client_pass", "").strip()
+
+    if not client_url:
+        return HttpResponse(
+            '<p class="text-red-400 text-sm">Please enter a client URL first.</p>'
+        )
+
+    try:
+        tc = TransmissionClient(client_url, client_user, client_pass)
+        if tc.test_connection():
+            return HttpResponse(
+                '<p class="text-green-400 text-sm">Connection successful!</p>'
+            )
+        return HttpResponse(
+            '<p class="text-red-400 text-sm">Could not connect. Check URL and credentials.</p>'
+        )
+    except Exception as e:
+        return HttpResponse(
+            f'<p class="text-red-400 text-sm">Connection failed: {e}</p>'
+        )
+
+
+@require_POST
 def clear_search_cache(request):
     """Clear all cached search entries."""
     deleted = cache.delete_pattern("search_*")

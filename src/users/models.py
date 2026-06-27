@@ -440,6 +440,70 @@ class User(AbstractUser):
         help_text="Jellyfin user ID for play URLs",
     )
 
+    # Download client settings
+    torrentclaw_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="TorrentClaw API key for torrent search",
+    )
+    download_client = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Download client type (e.g. transmission)",
+    )
+    download_client_url = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Download client URL (e.g. http://localhost:9091)",
+    )
+    download_client_user = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Download client username",
+    )
+    download_client_pass = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Download client password",
+    )
+    download_default_path = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Default download directory path",
+    )
+    download_preferred_quality = models.CharField(
+        max_length=20,
+        default="1080p",
+        help_text="Preferred quality for instant download",
+    )
+    download_preferred_codec = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Preferred codec for instant download",
+    )
+    download_preferred_audio = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Preferred audio format for instant download",
+    )
+    download_preferred_hdr = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Preferred HDR type for instant download",
+    )
+    download_min_seeders = models.IntegerField(
+        default=0,
+        help_text="Minimum seeders for instant download",
+    )
+    download_prefer_verified = models.BooleanField(
+        default=False,
+        help_text="Prefer TorrentClaw verified releases",
+    )
+    download_prefer_best_quality = models.BooleanField(
+        default=True,
+        help_text="True = best quality score, False = most seeders",
+    )
+
     class Meta:
         """Meta options for the model."""
 
