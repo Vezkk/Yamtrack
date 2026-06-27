@@ -7,6 +7,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -14,6 +15,7 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from app.providers import tmdb
+from integrations import jellyfin as jellyfin_client
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
     DateFormatChoices,
@@ -387,6 +389,56 @@ def update_jellyfin_webhook_events(request):
     messages.success(request, "Jellyfin webhook settings updated successfully")
 
     return redirect("integrations")
+
+
+@require_POST
+def update_jellyfin_connection(request):
+    """Update Jellyfin server connection settings."""
+    request.user.jellyfin_url = request.POST.get("jellyfin_url", "").strip()
+    request.user.jellyfin_api_key = request.POST.get("jellyfin_api_key", "").strip()
+    request.user.jellyfin_user_id = request.POST.get("jellyfin_user_id", "").strip()
+    request.user.save(
+        update_fields=[
+            "jellyfin_url",
+            "jellyfin_api_key",
+            "jellyfin_user_id",
+        ],
+    )
+    messages.success(request, "Jellyfin connection settings updated successfully")
+
+    return redirect("integrations")
+
+
+@require_POST
+def fetch_jellyfin_users(request):
+    """Fetch users from Jellyfin server and return an HTML select dropdown."""
+    server_url = request.POST.get("jellyfin_url", "").strip()
+    api_key = request.POST.get("jellyfin_api_key", "").strip()
+
+    if not server_url or not api_key:
+        return HttpResponse(
+            '<p class="text-red-400 text-sm">Please enter both server URL and API key first.</p>'
+        )
+
+    users = jellyfin_client.get_users(server_url, api_key)
+    if not users:
+        return HttpResponse(
+            '<p class="text-red-400 text-sm">Could not connect to Jellyfin server. Check URL and API key.</p>'
+        )
+
+    current_id = request.user.jellyfin_user_id
+    options = "".join(
+        f'<option value="{u["id"]}" {"selected" if u["id"] == current_id else ""}>{u["name"]}</option>'
+        for u in users
+    )
+    return HttpResponse(
+        f'<select name="jellyfin_user_id" id="jellyfin_user_id"'
+        f' onchange="document.getElementById(\'jellyfin_user_id_hidden\').value=this.value"'
+        f' class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600'
+        f' focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">'
+        f'<option value="">-- Select a user --</option>'
+        f"{options}</select>"
+    )
 
 
 @require_POST

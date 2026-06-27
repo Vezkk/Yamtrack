@@ -151,6 +151,71 @@
               </form>
             </div>
             <div class="bg-[#262a2f] p-4 rounded-md mb-4">
+              <h4 class="text-sm font-medium mb-3">Play on Jellyfin</h4>
+              <p class="text-gray-400 mb-4 text-sm">
+                Connect to your Jellyfin server to show a "Play on Jellyfin" button on media detail pages.
+              </p>
+              <form method="post"
+                    action="{% url 'update_jellyfin_connection' %}"
+                    class="space-y-3">
+                {% csrf_token %}
+                <div>
+                  <label for="jellyfin_url"
+                         class="block text-sm font-medium text-gray-300 mb-1">Server URL</label>
+                  <input name="jellyfin_url"
+                         id="jellyfin_url"
+                         class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                         type="url"
+                         placeholder="http://localhost:8096"
+                         value="{{ request.user.jellyfin_url }}">
+                </div>
+                <div>
+                  <label for="jellyfin_api_key"
+                         class="block text-sm font-medium text-gray-300 mb-1">API Key</label>
+                  <input name="jellyfin_api_key"
+                         id="jellyfin_api_key"
+                         class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                         type="text"
+                         placeholder="Your Jellyfin API key"
+                         value="{{ request.user.jellyfin_api_key }}">
+                  <p class="text-xs text-gray-400 mt-1">Generate in Jellyfin Dashboard > Advanced > API Keys</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">User</label>
+                  <div id="jellyfin-users-container">
+                    {% if request.user.jellyfin_user_id %}
+                      <select name="jellyfin_user_id"
+                              id="jellyfin_user_id"
+                              class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="{{ request.user.jellyfin_user_id }}" selected>{{ request.user.jellyfin_user_id }}</option>
+                      </select>
+                      <p class="text-xs text-gray-400 mt-1">Click "Fetch Users" to refresh or change user.</p>
+                    {% else %}
+                      <p class="text-xs text-gray-400">Enter server URL and API key, then click "Fetch Users".</p>
+                      <input type="hidden" name="jellyfin_user_id" value="">
+                    {% endif %}
+                  </div>
+                  <div class="mt-2">
+                    <button type="button"
+                            class="px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors text-xs cursor-pointer"
+                            hx-post="{% url 'fetch_jellyfin_users' %}"
+                            hx-include="[name='jellyfin_url'], [name='jellyfin_api_key']"
+                            hx-target="#jellyfin-users-container"
+                            hx-swap="innerHTML">
+                      Fetch Users
+                    </button>
+                  </div>
+                </div>
+                <div class="pt-1">
+                  <button type="submit"
+                          class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                    {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+                    Save Connection
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div class="bg-[#262a2f] p-4 rounded-md mb-4">
               <h4 class="text-sm font-medium mb-3">Official Webhook Plugin</h4>
               <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
                 <li>You will need to have TMDB and TVDB as metadata providers in Jellyfin.</li>

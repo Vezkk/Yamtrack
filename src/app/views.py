@@ -33,6 +33,7 @@ from app.models import (
 )
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
+from integrations import jellyfin
 from users.models import (
     DateFormatChoices,
     HomeSortChoices,
@@ -305,6 +306,23 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     else:
         watch_providers = None
 
+    # Check Jellyfin availability
+    jellyfin_available = False
+    jellyfin_url = None
+    user = request.user
+    if user.jellyfin_url and user.jellyfin_api_key:
+        external_ids = media_metadata.get("external_ids", {})
+        imdb_id = external_ids.get("imdb_id")
+        tmdb_id_val = media_id if source == Sources.TMDB.value else None
+        jellyfin_item_id = jellyfin.search_item_by_provider_ids(
+            user,
+            imdb_id=imdb_id,
+            tmdb_id=tmdb_id_val,
+        )
+        if jellyfin_item_id:
+            jellyfin_available = True
+            jellyfin_url = jellyfin.get_jellyfin_web_url(user, jellyfin_item_id)
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
@@ -312,6 +330,8 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "jellyfin_available": jellyfin_available,
+        "jellyfin_url": jellyfin_url,
     }
     return render(request, "app/media_details.html", context)
 
@@ -366,6 +386,23 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     )
                 )
 
+    # Check Jellyfin availability for the parent TV show
+    jellyfin_available = False
+    jellyfin_url = None
+    user = request.user
+    if user.jellyfin_url and user.jellyfin_api_key:
+        external_ids = tv_with_seasons_metadata.get("external_ids", {})
+        imdb_id = external_ids.get("imdb_id")
+        tmdb_id_val = media_id if source == Sources.TMDB.value else None
+        jellyfin_item_id = jellyfin.search_item_by_provider_ids(
+            user,
+            imdb_id=imdb_id,
+            tmdb_id=tmdb_id_val,
+        )
+        if jellyfin_item_id:
+            jellyfin_available = True
+            jellyfin_url = jellyfin.get_jellyfin_web_url(user, jellyfin_item_id)
+
     context = {
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
@@ -376,6 +413,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
         "watch_provider_region": request.user.watch_provider_region,
+        "jellyfin_available": jellyfin_available,
+        "jellyfin_url": jellyfin_url,
     }
     return render(request, "app/media_details.html", context)
 

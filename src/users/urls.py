@@ -40,4 +40,14 @@ urlpatterns = [
         views.update_jellyfin_webhook_events,
         name="update_jellyfin_webhook_events",
     ),
+    path(
+        "update_jellyfin_connection",
+        views.update_jellyfin_connection,
+        name="update_jellyfin_connection",
+    ),
+    path(
+        "fetch_jellyfin_users",
+        views.fetch_jellyfin_users,
+        name="fetch_jellyfin_users",
+    ),
 ]

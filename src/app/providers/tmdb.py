@@ -239,6 +239,7 @@ def movie(media_id):
                     MediaTypes.MOVIE.value,
                 ),
             },
+            "external_ids": response.get("external_ids", {}),
             "external_links": get_external_links(
                 response.get("external_ids", {}), media_id
             ),
@@ -450,6 +451,7 @@ def process_tv(response):
             ),
         },
         "tvdb_id": response.get("external_ids", {}).get("tvdb_id"),
+        "external_ids": response.get("external_ids", {}),
         "external_links": get_external_links(response.get("external_ids", {})),
         "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,

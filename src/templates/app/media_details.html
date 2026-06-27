@@ -435,7 +435,7 @@
 
       {# Media Details #}
       <h2 class="text-xl font-bold mb-4">Details</h2>
-      {% if watch_provider_region == "UNSET" or watch_providers is not None %}
+      {% if watch_provider_region == "UNSET" or watch_providers is not None or jellyfin_available %}
         <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
           <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
           {% if watch_provider_region == "UNSET" %}
@@ -445,7 +445,7 @@
               <a href="{{ preferences_url }}"
                  class="hover:text-indigo-500 hover:underline">preferences</a>.
             </p>
-          {% elif watch_providers %}
+          {% elif watch_providers or jellyfin_available %}
             <div class="grid grid-cols-[repeat(auto-fill,48px)] gap-2 items-center justify-between">
               {% for provider in watch_providers %}
                 <img class="rounded-md"
@@ -453,6 +453,15 @@
                      title="{{ provider.provider_name }}"
                      alt="{{ provider.provider_name }}" />
               {% endfor %}
+              {% if jellyfin_available %}
+                <a href="{{ jellyfin_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   title="Play on Jellyfin"
+                   class="block w-12 h-12 rounded-md overflow-hidden hover:ring-2 hover:ring-[#00A4DC] transition-all duration-300">
+                  {% include "app/icons/jellyfin.svg" with classes="w-12 h-12" %}
+                </a>
+              {% endif %}
             </div>
           {% else %}
             <p class="text-gray-200">No watch providers</p>
@@ -466,7 +475,9 @@
             <div class="mb-4">
               <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
               {% if value|is_list %}
-                {% for item in value %}<p class="text-gray-200">{{ item|iso_date_format:request.user }}</p>{% endfor %}
+                {% for item in value %}
+                  <p class="text-gray-200">{{ item|iso_date_format:request.user }}</p>
+                {% endfor %}
               {% else %}
                 <p class="text-gray-200">{{ value|default_if_none:"Unknown"|iso_date_format:request.user }}</p>
               {% endif %}

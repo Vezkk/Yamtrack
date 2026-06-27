@@ -424,6 +424,21 @@ class User(AbstractUser):
         default=False,
         help_text="Process Jellyfin MarkUnplayed webhook events",
     )
+    jellyfin_url = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Jellyfin server URL (e.g. http://localhost:8096)",
+    )
+    jellyfin_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Jellyfin API key for outbound requests",
+    )
+    jellyfin_user_id = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Jellyfin user ID for play URLs",
+    )
 
     class Meta:
         """Meta options for the model."""
